@@ -32,9 +32,11 @@
 
 | 系统 | 安装包 | 下载 |
 | --- | --- | --- |
-| Windows 10 / 11，64 位 Intel / AMD | `YYING浏览器-4.0.0-安装版.exe` | [下载 Windows 安装版](https://github.com/yingzhexu/yying-browser/releases/download/v4.0.0/YYING%E6%B5%8F%E8%A7%88%E5%99%A8-4.0.0-%E5%AE%89%E8%A3%85%E7%89%88.exe) |
-| macOS 13 Ventura 及以上，Apple 芯片 / Intel 通用 | `YYING浏览器-4.0.0-Mac.dmg` | [下载 macOS 通用版](https://github.com/yingzhexu/yying-browser/releases/download/v4.0.0/YYING%E6%B5%8F%E8%A7%88%E5%99%A8-4.0.0-Mac.dmg) |
+| Windows 10 / 11，64 位 Intel / AMD | `YYING-Browser-4.0.0-Windows-x64.exe` | [下载 Windows 安装版](https://github.com/yingzhexu/yying-browser/releases/download/v4.0.0/YYING-Browser-4.0.0-Windows-x64.exe) |
+| macOS 13 Ventura 及以上，Apple 芯片 / Intel 通用 | `YYING-Browser-4.0.0-macOS-universal.dmg` | [下载 macOS 通用版](https://github.com/yingzhexu/yying-browser/releases/download/v4.0.0/YYING-Browser-4.0.0-macOS-universal.dmg) |
 | 校验文件 | `SHA256SUMS.txt` | [下载 SHA-256 校验值](https://github.com/yingzhexu/yying-browser/releases/download/v4.0.0/SHA256SUMS.txt) |
+
+安装包来自作者提供的现成文件，仅调整 GitHub 附件名：Windows 对应原 `YYING浏览器-4.0.0-安装版.exe`，macOS 对应原 `YYING浏览器-4.0.0-Mac.dmg`，文件内容保持一致。
 
 [查看全部发行版本与版本介绍](https://github.com/yingzhexu/yying-browser/releases)。GitHub 在 Releases 中自动生成的 `Source code (zip)` / `Source code (tar.gz)` 是源码压缩包，不能当作安装包运行。
 
@@ -193,7 +195,7 @@ npm start
 
 ## 从源码打包（开发者可选）
 
-本次发行直接上传作者提供的现成安装包，保留原始文件名和内容。普通用户直接下载安装即可。以下命令供希望自行修改、打包的开发者使用：
+本次发行直接上传作者提供的现成安装包，保留安装包内容，GitHub 附件采用英文文件名以方便下载。普通用户直接下载安装即可。以下命令供希望自行修改、打包的开发者使用：
 
 ```bash
 npm run dist:win   # Windows x64，输出 dist/YYING浏览器-版本号-安装版.exe
