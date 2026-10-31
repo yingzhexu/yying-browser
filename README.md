@@ -19,7 +19,6 @@
 
 <p align="center">
   <a href="https://github.com/yingzhexu/yying-browser/releases"><img src="https://img.shields.io/github/v/release/yingzhexu/yying-browser?label=release" alt="最新版本"></a>
-  <a href="https://github.com/yingzhexu/yying-browser/actions/workflows/release.yml"><img src="https://github.com/yingzhexu/yying-browser/actions/workflows/release.yml/badge.svg" alt="安装包构建状态"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT"></a>
 </p>
 
@@ -33,15 +32,15 @@
 
 | 系统 | 安装包 | 下载 |
 | --- | --- | --- |
-| Windows 10 / 11，64 位 Intel / AMD | `YYING-Browser-4.0.0-Windows-x64.exe` | [下载 Windows 安装版](https://github.com/yingzhexu/yying-browser/releases/download/v4.0.0/YYING-Browser-4.0.0-Windows-x64.exe) |
-| macOS 13 Ventura 及以上，Apple 芯片 / Intel 通用 | `YYING-Browser-4.0.0-macOS-universal.dmg` | [下载 macOS 通用版](https://github.com/yingzhexu/yying-browser/releases/download/v4.0.0/YYING-Browser-4.0.0-macOS-universal.dmg) |
+| Windows 10 / 11，64 位 Intel / AMD | `YYING浏览器-4.0.0-安装版.exe` | [下载 Windows 安装版](https://github.com/yingzhexu/yying-browser/releases/download/v4.0.0/YYING%E6%B5%8F%E8%A7%88%E5%99%A8-4.0.0-%E5%AE%89%E8%A3%85%E7%89%88.exe) |
+| macOS 13 Ventura 及以上，Apple 芯片 / Intel 通用 | `YYING浏览器-4.0.0-Mac.dmg` | [下载 macOS 通用版](https://github.com/yingzhexu/yying-browser/releases/download/v4.0.0/YYING%E6%B5%8F%E8%A7%88%E5%99%A8-4.0.0-Mac.dmg) |
 | 校验文件 | `SHA256SUMS.txt` | [下载 SHA-256 校验值](https://github.com/yingzhexu/yying-browser/releases/download/v4.0.0/SHA256SUMS.txt) |
 
 [查看全部发行版本与版本介绍](https://github.com/yingzhexu/yying-browser/releases)。GitHub 在 Releases 中自动生成的 `Source code (zip)` / `Source code (tar.gz)` 是源码压缩包，不能当作安装包运行。
 
-**Windows 安装：**运行 `.exe`，选择安装路径并完成向导。安装向导支持简体中文和英文，可创建桌面和开始菜单快捷方式。
+**Windows 安装**：运行 `.exe`，选择安装路径并完成向导。安装向导使用简体中文，可创建桌面和开始菜单快捷方式。
 
-**macOS 安装：**打开 `.dmg`，把「YYING浏览器」拖到「应用程序」，再从「应用程序」启动。一个安装包同时包含 Apple 芯片和 Intel 版本。
+**macOS 安装**：打开 `.dmg`，把「YYING浏览器」拖到「应用程序」，再从「应用程序」启动。一个安装包同时包含 Apple 芯片和 Intel 版本。
 
 当前 Windows 构建没有发布者数字签名；macOS 构建采用 ad-hoc 临时签名，没有 Apple Developer ID 签名或公证。系统首次运行时可能提示未知发布者或要求在「系统设置 → 隐私与安全性」中确认。具体提示取决于系统版本和设置。
 
@@ -161,9 +160,9 @@ YYING浏览器是一个基于 **Electron 45.2.1** 的桌面多账号浏览器，
 
 目录内包括配置与设置 JSON、每个配置的会话、历史与书签、壁纸，以及 Chromium 的持久化分区数据。下载任务列表在当前运行期间按配置维护；实际下载文件默认保存在系统「下载」文件夹，同名文件自动编号。
 
-**升级：**先正常退出应用，再安装新版。普通覆盖安装不主动删除已有数据；Windows 卸载器也配置为保留应用数据。不要在升级过程中清除配置或手动删除数据目录。
+**升级**：先正常退出应用，再安装新版。普通覆盖安装不主动删除已有数据；Windows 卸载器也配置为保留应用数据。不要在升级过程中清除配置或手动删除数据目录。
 
-**备份：**完全退出应用后复制整个数据目录。恢复前也先退出应用，再恢复到同一位置。Cookie 等数据可能与系统账号及设备关联，跨电脑复制不保证保留登录。
+**备份**：完全退出应用后复制整个数据目录。恢复前也先退出应用，再恢复到同一位置。Cookie 等数据可能与系统账号及设备关联，跨电脑复制不保证保留登录。
 
 ## 常见问题与当前范围
 
@@ -192,28 +191,22 @@ npm start
 
 `npm ci` 按 `package-lock.json` 安装已锁定依赖。当前 Electron 为 `45.2.1`，锁文件中的 electron-builder 为 `26.18.0`。本地运行也会使用上述应用数据目录；已有安装版用户应先备份数据，并避免同时运行两个版本。
 
-## 本地打包与自动发行
+## 从源码打包（开发者可选）
+
+本次发行直接上传作者提供的现成安装包，保留原始文件名和内容。普通用户直接下载安装即可。以下命令供希望自行修改、打包的开发者使用：
 
 ```bash
-npm run dist:win   # Windows x64，输出 dist/*.exe
-npm run dist:mac   # macOS 通用版，输出 dist/*.dmg
+npm run dist:win   # Windows x64，输出 dist/YYING浏览器-版本号-安装版.exe
+npm run dist:mac   # macOS 通用版，输出 dist/YYING浏览器-版本号-Mac.dmg
 ```
 
-macOS 安装包需要在 macOS 上构建。Windows 安装包建议在 Windows 上构建；从 macOS 交叉构建 Windows 时可能需要额外工具。仓库的自动发行流程分别使用 Windows 和 macOS 原生运行环境。
+macOS 安装包需要在 macOS 上构建。Windows 安装包建议在 Windows 上构建；从 macOS 交叉构建 Windows 时可能需要额外工具。
 
-维护者发行步骤：
-
-1. 更新 `package.json` 和锁文件中的版本号。
-2. 新增 `docs/releases/v版本号.md`，同时填写中文与英文版本介绍。
-3. 提交并推送修改，再推送与版本号一致的标签，例如 `v4.0.1`。
-4. [Build and Release 工作流](.github/workflows/release.yml) 构建两个安装包，检查文件、macOS 双架构与磁盘映像，生成 `SHA256SUMS.txt`，成功后一起发布到 Releases。
-
-两个平台构建均成功后才发布发行版。运行情况可在 [Actions](https://github.com/yingzhexu/yying-browser/actions) 查看。
+维护者发布新版本时，更新 `package.json`、锁文件与 `docs/releases/v版本号.md`，在 GitHub Releases 中选择对应标签，填写中英文版本介绍，并上传准备好的安装包及 SHA-256 校验文件。
 
 ## 项目结构
 
 ```text
-.github/workflows/release.yml  Windows / macOS 自动构建与发行
 src/
   main.js                     主进程：窗口、配置、Session、标签页、存储与菜单
   home.html                   配置管理主页、批量操作与设置

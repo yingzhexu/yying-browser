@@ -17,8 +17,8 @@
   },
   "scripts": {
     "start": "electron .",
-    "dist:win": "electron-builder --win --publish never",
-    "dist:mac": "electron-builder --mac --publish never"
+    "dist:win": "electron-builder --win",
+    "dist:mac": "electron-builder --mac"
   },
   "build": {
     "appId": "com.yingying.browser",
@@ -50,12 +50,10 @@
       "createStartMenuShortcut": true,
       "shortcutName": "YYING浏览器",
       "installerLanguages": [
-        "zh_CN",
-        "en_US"
+        "zh_CN"
       ],
-      "displayLanguageSelector": true,
       "language": "2052",
-      "artifactName": "YYING-Browser-${version}-Windows-x64.${ext}",
+      "artifactName": "YYING浏览器-${version}-安装版.${ext}",
       "deleteAppDataOnUninstall": false
     },
     "mac": {
@@ -69,10 +67,9 @@
       ],
       "icon": "build/icon.png",
       "category": "public.app-category.productivity",
-      "minimumSystemVersion": "13.0",
       "identity": "-",
       "hardenedRuntime": false,
-      "artifactName": "YYING-Browser-${version}-macOS-universal.${ext}"
+      "artifactName": "YYING浏览器-${version}-Mac.${ext}"
     },
     "toolsets": {
       "nsis": "1.2.1",
