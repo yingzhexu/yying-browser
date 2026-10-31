@@ -1,0 +1,84 @@
+{
+  "name": "yying-browser",
+  "productName": "YYING浏览器",
+  "version": "4.0.0",
+  "description": "YYING浏览器：共享 Chromium 内核的多开浏览器，最多 10 个登录信息完全独立的浏览器。小应同学ying 制作",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist:win": "electron-builder --win",
+    "dist:mac": "electron-builder --mac"
+  },
+  "build": {
+    "appId": "com.yingying.browser",
+    "productName": "YYING浏览器",
+    "copyright": "© 2026 小应同学ying",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "YYING浏览器",
+      "installerLanguages": [
+        "zh_CN"
+      ],
+      "language": "2052",
+      "artifactName": "YYING浏览器-${version}-安装版.${ext}",
+      "deleteAppDataOnUninstall": false
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        }
+      ],
+      "icon": "build/icon.png",
+      "category": "public.app-category.productivity",
+      "identity": "-",
+      "hardenedRuntime": false,
+      "artifactName": "YYING浏览器-${version}-Mac.${ext}"
+    },
+    "toolsets": {
+      "nsis": "1.2.1",
+      "winCodeSign": "1.1.0"
+    },
+    "dmg": {
+      "title": "YYING浏览器 ${version}"
+    }
+  },
+  "devDependencies": {
+    "electron": "45.2.1",
+    "electron-builder": "^26.18.0"
+  },
+  "author": "小应同学ying",
+  "license": "MIT",
+  "keywords": [
+    "browser",
+    "multi-account",
+    "electron",
+    "chromium",
+    "多开浏览器"
+  ]
+}

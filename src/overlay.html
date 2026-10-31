@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src * data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'">
+<style>
+  :root { --bg: #ffffff; --text: #1d1f2b; --sub: #6b7085; --sel: #eef0f6; --line: rgba(0,0,0,.08); color-scheme: light; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #2c2d35; --text: #e9eaf1; --sub: #9b9eae; --sel: #3a3c47; --line: rgba(255,255,255,.08); color-scheme: dark; } }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: transparent; overflow: hidden; font-family: -apple-system, "PingFang SC", "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif; font-size: 13px; user-select: none; }
+  body { padding: 12px; }
+  #box { background: var(--bg); border-radius: 16px; padding: 8px; border: 1px solid var(--line);
+    box-shadow: 0 12px 32px rgba(0,0,0,.18), 0 2px 6px rgba(0,0,0,.08); transform-origin: top center; }
+  #box.anim { animation: drop .2s cubic-bezier(.2,.8,.2,1); }
+  .lite #box.anim { animation: none; }
+  @keyframes drop { from { opacity: 0; transform: translateY(-6px) scale(.98); } }
+  .it { height: 46px; display: flex; align-items: center; gap: 12px; padding: 0 12px; border-radius: 10px; cursor: default; color: var(--text); }
+  .it:hover { background: var(--sel); }
+  .it.sel { background: var(--sel); }
+  .ic { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; flex-shrink: 0; color: var(--sub); }
+  .ic img { width: 16px; height: 16px; border-radius: 3px; }
+  .ic svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .tx { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 8px; overflow: hidden; white-space: nowrap; }
+  .tt { overflow: hidden; text-overflow: ellipsis; flex-shrink: 1; min-width: 0; }
+  .tt b { font-weight: 700; }
+  .uu { color: var(--sub); font-size: 12px; overflow: hidden; text-overflow: ellipsis; flex-shrink: 2; min-width: 0; }
+  .tag { font-size: 11px; color: var(--sub); flex-shrink: 0; }
+</style>
+</head>
+<body>
+<div id="box"></div>
+<script>
+const ICONS = {
+  search: '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>',
+  url: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/></svg>',
+  history: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+  bookmark: '<svg viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.3 5.9.9-4.25 4.1 1 5.85L12 16.9l-5.25 2.75 1-5.85L3.5 9.7l5.9-.9z"/></svg>',
+};
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const pretty = (u) => u.replace(/^https?:\/\//, '').replace(/^([^/?#]+)\/$/, '$1');
+let last = 0;
+const box = document.getElementById('box');
+
+function applySkin(k) {
+  const r = document.documentElement.style;
+  if (!k || k.id === 'classic') { ['bg', 'text', 'sub', 'sel', 'line'].forEach((x) => r.removeProperty(`--${x}`)); r.removeProperty('color-scheme'); return; }
+  r.setProperty('--bg', k.tool); r.setProperty('--text', k.text); r.setProperty('--sub', k.sub);
+  r.setProperty('--sel', k.field); r.setProperty('--line', k.line); r.setProperty('color-scheme', k.dark ? 'dark' : 'light');
+}
+window.overlay.onRender(({ items, sel, skin, lite }) => {
+  applySkin(skin);
+  document.documentElement.classList.toggle('lite', !!lite);
+  const now = Date.now();
+  if (now - last > 400) { box.classList.remove('anim'); void box.offsetWidth; box.classList.add('anim'); }
+  last = now;
+  box.innerHTML = items.map((it, i) => {
+    const icon = it.favicon && it.type !== 'search' ? `<img src="${esc(it.favicon)}">` : ICONS[it.type];
+    const title = it.type === 'search' ? `<b>${esc(it.title)}</b>` : esc(it.title || it.url);
+    const sub = it.type === 'search' ? '' : `<span class="uu">${esc(pretty(it.url))}</span>`;
+    const tag = { search: '搜索', url: '打开网址', bookmark: '书签', history: '' }[it.type];
+    return `<div class="it ${i === sel ? 'sel' : ''}" data-i="${i}"><span class="ic">${icon}</span><span class="tx"><span class="tt">${title}</span>${sub}</span><span class="tag">${tag}</span></div>`;
+  }).join('');
+  box.querySelectorAll('img').forEach((img) => { img.onerror = () => { img.parentElement.innerHTML = ICONS.url; }; });
+});
+box.addEventListener('mousedown', (e) => {
+  const it = e.target.closest('.it');
+  if (it) { e.preventDefault(); window.overlay.pick(Number(it.dataset.i)); }
+});
+</script>
+</body>
+</html>

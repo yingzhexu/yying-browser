@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>新标签页</title>
+<style>
+  :root {
+    --c: #ff6b8b; --bg: linear-gradient(160deg, #fff6f9 0%, #f3f0ff 55%, #eef5ff 100%); --card: rgba(255,255,255,.78); --text: #1d1f2b; --sub: #6b7085;
+    --line: rgba(0,0,0,.06); --ease: cubic-bezier(.2,.8,.2,1); --spring: cubic-bezier(.34,1.56,.64,1); color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not(.skinned) { --bg: linear-gradient(160deg, #1c1a26 0%, #191a24 55%, #161a22 100%); --card: rgba(44,45,56,.72); --text: #eceef6; --sub: #9b9eae; --line: rgba(255,255,255,.07); color-scheme: dark; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden;
+    font-family: -apple-system, "PingFang SC", "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif; background: var(--bg);
+    color: var(--text); -webkit-font-smoothing: antialiased; transition: background .4s; }
+  /* 壁纸 */
+  #wall { position: fixed; inset: 0; background-size: cover; background-position: center; opacity: 0; transition: opacity .6s var(--ease); z-index: 0; }
+  #wall::after { content: ''; position: fixed; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,.28), rgba(0,0,0,.12) 40%, rgba(0,0,0,.35)); }
+  .haswall #wall { opacity: 1; }
+  .haswall .clock, .haswall .greet, .haswall .foot { color: #fff; text-shadow: 0 1px 8px rgba(0,0,0,.45); }
+  .haswall .greet b { color: #fff; }
+  .haswall .blob { display: none; }
+  /* 整组内容略高于正中，时间在上、搜索框在视觉中心附近 */
+  main { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; margin-top: -18vh; }
+  .blob { position: fixed; border-radius: 50%; filter: blur(80px); opacity: .32; pointer-events: none; animation: drift 20s ease-in-out infinite alternate; }
+  .blob.a { width: 420px; height: 420px; background: var(--c); left: -120px; top: -140px; }
+  .blob.b { width: 380px; height: 380px; background: #9b6bff; right: -120px; bottom: -160px; animation-delay: -8s; }
+  @keyframes drift { to { transform: translate(50px, 40px) scale(1.1); } }
+  .in { opacity: 0; transform: translateY(14px); animation: up .6s var(--ease) forwards; }
+  @keyframes up { to { opacity: 1; transform: none; } }
+  .clock { font-size: 64px; font-weight: 200; letter-spacing: 2px; font-variant-numeric: tabular-nums; line-height: 1; }
+  .greet { margin-top: 12px; color: var(--sub); font-size: 15px; animation-delay: 60ms; }
+  .greet b { color: var(--c); font-weight: 600; }
+  form { width: min(640px, 88vw); display: flex; align-items: center; margin-top: 56px; background: var(--card); backdrop-filter: blur(20px);
+    border-radius: 28px; border: 1px solid var(--line); box-shadow: 0 10px 40px rgba(60, 50, 120, .14); padding: 6px 6px 6px 20px;
+    transition: box-shadow .3s var(--ease), transform .3s var(--ease); animation-delay: 120ms; }
+  form:focus-within { box-shadow: 0 0 0 4px color-mix(in srgb, var(--c) 22%, transparent), 0 14px 44px rgba(60, 50, 120, .2); transform: translateY(-1px); }
+  form svg { width: 20px; height: 20px; stroke: var(--sub); fill: none; stroke-width: 2; stroke-linecap: round; flex-shrink: 0; }
+  input { flex: 1; border: 0; outline: none; font-size: 16px; padding: 12px 14px; background: none; color: var(--text); font-family: inherit; min-width: 0; }
+  input::placeholder { color: var(--sub); }
+  .go { border: 0; height: 44px; border-radius: 22px; background: linear-gradient(90deg, var(--c), #9b6bff); color: #fff; padding: 0 24px; font-size: 15px;
+    cursor: pointer; font-family: inherit; transition: transform .2s var(--spring), filter .2s; }
+  .go:hover { filter: brightness(1.08); }
+  .go:active { transform: scale(.95); }
+  .foot { position: fixed; bottom: 18px; left: 0; right: 0; text-align: center; color: var(--sub); font-size: 12px; opacity: .75; z-index: 1; animation-delay: 400ms; }
+  @media (max-width: 520px) { .clock { font-size: 48px; } }
+
+  /* 主题面板 */
+  #skinBtn { position: fixed; right: 18px; bottom: 16px; z-index: 3; height: 36px; padding: 0 14px; border-radius: 18px; border: 1px solid var(--line);
+    background: var(--card); backdrop-filter: blur(16px); color: var(--text); font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px;
+    transition: transform .2s var(--spring); font-family: inherit; }
+  #skinBtn:hover { transform: translateY(-2px); }
+  #panel { position: fixed; right: 18px; bottom: 62px; z-index: 4; width: 340px; padding: 16px; border-radius: 18px; background: var(--card);
+    backdrop-filter: blur(24px); border: 1px solid var(--line); box-shadow: 0 20px 50px rgba(0,0,0,.18); color: var(--text);
+    transform-origin: bottom right; transform: scale(.92) translateY(8px); opacity: 0; pointer-events: none; transition: transform .3s var(--spring), opacity .2s; }
+  #panel.show { transform: none; opacity: 1; pointer-events: auto; }
+  #panel h4 { margin: 0 0 10px; font-size: 13px; color: var(--sub); font-weight: 600; }
+  .skins { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .sk { border: 2px solid transparent; border-radius: 12px; padding: 0; background: none; cursor: pointer; text-align: center; color: var(--text); font-size: 11px; font-family: inherit;
+    transition: transform .2s var(--spring), border-color .15s; }
+  .sk:hover { transform: translateY(-2px); }
+  .sk.on { border-color: var(--c); }
+  .sk .pv { height: 38px; border-radius: 9px; position: relative; overflow: hidden; border: 1px solid var(--line); }
+  .sk .pv i { position: absolute; left: 0; right: 0; top: 0; height: 12px; }
+  .sk span { display: block; padding: 4px 0 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .wp { display: flex; gap: 8px; margin-top: 14px; }
+  .wp button { flex: 1; height: 34px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--text); cursor: pointer; font-size: 12.5px; font-family: inherit; }
+  .wp button:hover { border-color: var(--c); color: var(--c); }
+  .wp button:disabled { opacity: .45; cursor: default; }
+  .wp button:disabled:hover { border-color: var(--line); color: var(--text); }
+  .lite .blob { display: none; }
+  .lite *, .lite *::before, .lite *::after { animation-duration: 0s !important; animation-delay: 0s !important; transition: none !important; backdrop-filter: none !important; }
+  .lite form, .lite #panel, .lite #skinBtn { backdrop-filter: none; }
+</style>
+</head>
+<body>
+  <div id="wall"></div>
+  <div class="blob a"></div><div class="blob b"></div>
+  <main>
+    <div class="clock in" id="clock"></div>
+    <div class="greet in" id="greet"></div>
+    <form id="f" class="in">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+      <input id="q" placeholder="搜索或输入网址" autofocus autocomplete="off" spellcheck="false">
+      <button class="go">搜索</button>
+    </form>
+  </main>
+  <div class="foot in">YYING浏览器 · 小应同学ying 制作 · 登录信息与其他浏览器完全隔离</div>
+  <button id="skinBtn" class="in" style="animation-delay:450ms" hidden>🎨 主题</button>
+  <div id="panel">
+    <h4>这个浏览器的主题</h4>
+    <div class="skins" id="skins"></div>
+    <div class="wp"><button id="wpPick">上传壁纸</button><button id="wpClear">移除壁纸</button></div>
+  </div>
+<script>
+  const ENGINES = { google: ['https://www.google.com/search?q=', 'Google'], bing: ['https://www.bing.com/search?ensearch=1&q=', '必应国际版'], baidu: ['https://www.baidu.com/s?wd=', '百度'] };
+  const qs = new URLSearchParams(location.search);
+  let engine = ENGINES[qs.get('engine')] || ENGINES.bing;
+  if (qs.get('lite') === '1') document.documentElement.classList.add('lite');
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const setPlaceholder = () => { $('q').placeholder = `在 ${engine[1]} 中搜索，或输入网址`; };
+  setPlaceholder();
+
+  function tick() {
+    const d = new Date();
+    $('clock').textContent = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  }
+  tick(); setInterval(tick, qs.get('lite') === '1' ? 15000 : 1000);
+  const h = new Date().getHours();
+  const hello = h < 5 ? '夜深了' : h < 11 ? '早上好' : h < 13 ? '中午好' : h < 18 ? '下午好' : '晚上好';
+  $('greet').textContent = hello;
+
+  $('f').onsubmit = (e) => {
+    e.preventDefault();
+    const v = $('q').value.trim();
+    if (!v) return;
+    const hasScheme = /^[a-z]+:\/\//i.test(v);
+    const isUrl = hasScheme || (!/\s/.test(v) && /^[^\s/]+\.[a-z]{2,}(:\d+)?([/?#].*)?$/i.test(v));
+    location.href = isUrl ? (hasScheme ? v : `https://${v}`) : engine[0] + encodeURIComponent(v);
+  };
+
+  // ---------- 主题 ----------
+  let skin = null;
+  function applySkin(k) {
+    skin = k;
+    const root = document.documentElement;
+    const r = root.style;
+    if (!k || k.id === 'classic') {
+      root.classList.remove('skinned');
+      ['--bg', '--card', '--text', '--sub', '--line', 'color-scheme'].forEach((x) => r.removeProperty(x));
+    } else {
+      root.classList.add('skinned');
+      r.setProperty('--bg', k.nt);
+      r.setProperty('--card', k.dark ? `color-mix(in srgb, ${k.tool} 80%, transparent)` : 'rgba(255,255,255,.78)');
+      r.setProperty('--text', k.text);
+      r.setProperty('--sub', k.sub);
+      r.setProperty('--line', k.dark ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.06)');
+      r.setProperty('color-scheme', k.dark ? 'dark' : 'light');
+    }
+    const wall = $('wall');
+    if (k && k.wallpaper) {
+      const img = new Image();
+      img.onload = () => { wall.style.backgroundImage = `url("${k.wallpaper}")`; root.classList.add('haswall'); };
+      img.onerror = () => root.classList.remove('haswall');
+      img.src = k.wallpaper;
+    } else {
+      root.classList.remove('haswall');
+    }
+    $('wpClear').disabled = !(k && k.wallpaper);
+    document.querySelectorAll('.sk').forEach((b) => b.classList.toggle('on', b.dataset.id === (k && k.own ? k.id : '')));
+  }
+  function renderSkins(list) {
+    const items = [{ id: '', name: '跟随默认' }].concat(list);
+    $('skins').innerHTML = items.map((k) => {
+      const pv = k.id === '' ? 'background:repeating-linear-gradient(135deg,rgba(128,128,128,.15) 0 6px,rgba(128,128,128,.28) 6px 12px)'
+        : k.id === 'classic' ? 'background:linear-gradient(90deg,#fff 50%,#2a2b33 50%)' : `background:${k.nt}`;
+      const bar = k.id === 'classic' ? 'background:linear-gradient(90deg,#e6e8ef 50%,#1a1b21 50%)' : k.bar ? `background:${k.bar}` : '';
+      return `<button class="sk" data-id="${esc(k.id)}" title="${esc(k.name)}"><div class="pv" style="${pv}">${bar ? `<i style="${bar}"></i>` : ''}</div><span>${esc(k.name)}</span></button>`;
+    }).join('');
+    $('skins').querySelectorAll('.sk').forEach((b) => { b.onclick = () => window.yyInternal.setSkin(b.dataset.id); });
+  }
+  $('skinBtn').onclick = (e) => { e.stopPropagation(); $('panel').classList.toggle('show'); };
+  $('panel').onclick = (e) => e.stopPropagation();
+  document.addEventListener('click', () => $('panel').classList.remove('show'));
+  $('wpPick').onclick = () => window.yyInternal.pickWallpaper();
+  $('wpClear').onclick = () => window.yyInternal.clearWallpaper();
+
+  async function init() {
+    const info = window.yyInternal ? await window.yyInternal.info() : null;
+    if (info) {
+      document.documentElement.style.setProperty('--c', info.color);
+      if (ENGINES[info.engine]) { engine = ENGINES[info.engine]; setPlaceholder(); }
+      if (info.name) $('greet').innerHTML = `${hello}，欢迎使用 <b>${esc(info.name)}</b>`;
+      if (info.lite) document.documentElement.classList.add('lite');
+      renderSkins(info.skins || []);
+      applySkin(info.skin);
+      $('skinBtn').hidden = false;
+      window.yyInternal.onSkin(applySkin);
+    }
+  }
+  init();
+</script>
+</body>
+</html>

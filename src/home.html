@@ -1,0 +1,925 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'">
+<title>YYING浏览器</title>
+<style>
+  :root {
+    --bg: #f5f6fa; --card: #ffffff; --line: #e8eaf1; --line2: #d9dce6; --text: #1b1d2a; --sub: #6d7189; --mute: #a3a7bb;
+    --field: #f2f3f7; --accent: #ff6b8b; --accent2: #8b6bff; --green: #22b573; --danger: #e5485d;
+    --shadow: 0 1px 2px rgba(20, 24, 60, .04), 0 4px 14px rgba(20, 24, 60, .05);
+    --shadow-hi: 0 2px 4px rgba(20, 24, 60, .05), 0 14px 34px rgba(20, 24, 60, .1);
+    --ease: cubic-bezier(.2, .8, .2, 1); --spring: cubic-bezier(.34, 1.56, .64, 1);
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; overflow: hidden auto; background: var(--bg); color: var(--text); user-select: none; -webkit-font-smoothing: antialiased;
+    font-family: -apple-system, "PingFang SC", "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif; }
+  button, input { font-family: inherit; }
+  .drag { -webkit-app-region: drag; height: 40px; position: fixed; inset: 0 0 auto 0; z-index: 50; }
+  body.win .drag { right: 140px; }
+  svg.i { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+  .bgdeco { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 0; }
+  .bgdeco i { position: absolute; border-radius: 50%; filter: blur(90px); opacity: .22; animation: drift 22s ease-in-out infinite alternate; }
+  .bgdeco i:nth-child(1) { width: 520px; height: 520px; background: #ff9ab3; left: -200px; top: -260px; }
+  .bgdeco i:nth-child(2) { width: 480px; height: 480px; background: #b8a2ff; right: -200px; top: -120px; animation-delay: -8s; }
+  .bgdeco i:nth-child(3) { width: 420px; height: 420px; background: #9cc8ff; left: 35%; bottom: -320px; animation-delay: -14s; }
+  @keyframes drift { to { transform: translate(50px, 40px) scale(1.1); } }
+
+  /* ---------- 开机动画 ---------- */
+  #splash { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; background: #fff;
+    transition: opacity .6s var(--ease), transform .7s var(--ease), filter .6s var(--ease); }
+  #splash.out { opacity: 0; transform: scale(1.06); filter: blur(6px); pointer-events: none; }
+  .s-center { position: relative; display: flex; flex-direction: column; align-items: center; z-index: 1; }
+  .logo { position: relative; width: 104px; height: 104px; border-radius: 30px; background: linear-gradient(135deg, #ff6b8b 0%, #c56bff 55%, #6b7bff 100%);
+    box-shadow: 0 22px 50px rgba(197, 107, 255, .35), inset 0 1px 0 rgba(255,255,255,.4); display: grid; place-items: center;
+    transform: scale(.3) rotate(-25deg); opacity: 0; animation: logoIn .9s var(--spring) .15s forwards; overflow: hidden; }
+  .logo::after { content: ''; position: absolute; inset: 0; background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,.5) 48%, transparent 62%);
+    background-size: 250% 100%; background-position: 120% 0; animation: shine 1.1s var(--ease) 1.05s forwards; }
+  @keyframes logoIn { 60% { opacity: 1; } to { transform: none; opacity: 1; } }
+  @keyframes shine { to { background-position: -120% 0; } }
+  .logo svg, .mini svg { overflow: visible; }
+  .logo svg { width: 58px; height: 58px; }
+  .logo path { fill: none; stroke: #fff; stroke-width: 8; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 120; stroke-dashoffset: 120; animation: draw .8s var(--ease) .55s forwards; }
+  @keyframes draw { to { stroke-dashoffset: 0; } }
+  .ring { position: absolute; left: 50%; top: 52px; width: 104px; height: 104px; margin: -52px 0 0 -52px; border-radius: 34px; border: 2px solid rgba(197,107,255,.55); opacity: 0; animation: ring 1.2s var(--ease) .9s; }
+  .ring.r2 { animation-delay: 1.15s; }
+  @keyframes ring { 0% { opacity: .8; transform: scale(1); } 100% { opacity: 0; transform: scale(2.2); } }
+  .word { margin-top: 30px; font-size: 38px; font-weight: 700; letter-spacing: 1px; display: flex; }
+  .word span { display: inline-block; opacity: 0; transform: translateY(18px); filter: blur(4px); animation: up .6s var(--ease) forwards; }
+  .grad { background: linear-gradient(90deg, var(--accent), var(--accent2)); -webkit-background-clip: text; color: transparent; }
+  @keyframes up { to { opacity: 1; transform: none; filter: none; } }
+  .slogan { margin-top: 12px; color: var(--sub); font-size: 14px; letter-spacing: 4px; opacity: 0; transform: translateY(10px); animation: up .7s var(--ease) 1.3s forwards; }
+  .loadbar { margin-top: 34px; width: 180px; height: 3px; border-radius: 3px; background: #eceef4; overflow: hidden; opacity: 0; animation: up .4s var(--ease) .5s forwards; }
+  .loadbar i { display: block; height: 100%; width: 0; border-radius: 3px; background: linear-gradient(90deg, var(--accent), var(--accent2)); animation: fill 1.5s cubic-bezier(.65,0,.35,1) .55s forwards; }
+  @keyframes fill { to { width: 100%; } }
+  .maker { position: absolute; bottom: 30px; color: var(--mute); font-size: 12.5px; letter-spacing: 2px; opacity: 0; animation: up .6s var(--ease) 1.5s forwards; }
+
+  /* ---------- 页面 ---------- */
+  main { position: relative; z-index: 1; max-width: 1060px; margin: 0 auto; padding: 64px 36px 120px; }
+  .reveal { opacity: 0; transform: translateY(16px); }
+  .ready .reveal { animation: up .6s var(--ease) forwards; animation-delay: calc(var(--i, 0) * 50ms); }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 22px; flex-wrap: wrap; }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .mini { width: 48px; height: 48px; border-radius: 15px; background: linear-gradient(135deg, #ff6b8b, #c56bff 55%, #6b7bff); display: grid; place-items: center; box-shadow: 0 8px 22px rgba(197,107,255,.3); flex-shrink: 0; }
+  .mini svg { width: 26px; height: 26px; }
+  .mini path { fill: none; stroke: #fff; stroke-width: 9; stroke-linecap: round; stroke-linejoin: round; }
+  h1 { margin: 0; font-size: 25px; letter-spacing: .3px; }
+  .tag { color: var(--sub); margin-top: 3px; font-size: 13px; }
+  .hright { display: flex; align-items: center; gap: 8px; -webkit-app-region: no-drag; position: relative; z-index: 60; }
+  .btn { height: 36px; border: 1px solid var(--line2); border-radius: 18px; background: var(--card); color: var(--text); padding: 0 14px; font-size: 13px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; white-space: nowrap;
+    transition: border-color .15s, background .15s, transform .15s, box-shadow .2s, color .15s; }
+  .btn:hover:not(:disabled) { border-color: #c4c8d6; box-shadow: var(--shadow); }
+  .btn:active:not(:disabled) { transform: scale(.96); }
+  .btn:disabled { opacity: .45; cursor: default; }
+  .btn.primary { border: 0; background: linear-gradient(90deg, var(--accent), var(--accent2)); color: #fff; }
+  .btn.primary:hover:not(:disabled) { filter: brightness(1.06); box-shadow: 0 6px 18px rgba(139,107,255,.3); }
+  .btn.on { border-color: var(--accent2); color: var(--accent2); background: #f4f0ff; }
+  .btn.icon { width: 36px; padding: 0; }
+  .btn.danger { color: var(--danger); }
+  .btn.danger:hover:not(:disabled) { border-color: var(--danger); }
+
+  .stats { display: flex; align-items: center; gap: 18px; margin-bottom: 18px; color: var(--sub); font-size: 13px; flex-wrap: wrap; }
+  .stats b { color: var(--text); font-variant-numeric: tabular-nums; }
+  .meter { width: 90px; height: 5px; border-radius: 3px; background: #e8eaf1; overflow: hidden; display: inline-block; vertical-align: middle; margin-left: 6px; }
+  .meter i { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width .5s var(--ease); }
+  .live { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); flex-shrink: 0; box-shadow: 0 0 0 0 rgba(34,181,115,.5); animation: pulse 2s infinite; }
+  .dot.off { background: #cfd2dd; animation: none; }
+  @keyframes pulse { 70% { box-shadow: 0 0 0 6px rgba(34,181,115,0); } 100% { box-shadow: 0 0 0 0 rgba(34,181,115,0); } }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(236px, 1fr)); gap: 14px; }
+  .card { --pc: #ff6b8b; position: relative; background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 16px 16px 14px;
+    box-shadow: var(--shadow); cursor: pointer; display: flex; flex-direction: column; min-height: 196px;
+    transition: transform .3s var(--spring), box-shadow .3s var(--ease), border-color .2s, opacity .25s; }
+  .card::before { content: ''; position: absolute; left: 16px; right: 16px; top: -1px; height: 3px; border-radius: 0 0 3px 3px; background: var(--pc); opacity: 0; transition: opacity .25s; }
+  .card:hover { transform: translateY(-3px); box-shadow: var(--shadow-hi); border-color: color-mix(in srgb, var(--pc) 35%, var(--line)); }
+  .card.running { border-color: color-mix(in srgb, var(--pc) 45%, var(--line)); }
+  .card.running::before { opacity: 1; }
+  .card.pop { animation: pop .45s var(--spring); }
+  @keyframes pop { from { opacity: 0; transform: scale(.9); } }
+  .card.removing { opacity: 0; transform: scale(.9); pointer-events: none; }
+  .card.launch { animation: launch .45s var(--ease); }
+  @keyframes launch { 40% { transform: scale(.97); } }
+  .card.dragging { opacity: .35; }
+  .card.selected { border-color: var(--accent2); box-shadow: 0 0 0 3px rgba(139,107,255,.18), var(--shadow); }
+  .top { display: flex; align-items: flex-start; gap: 12px; }
+  .avatar { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; font-size: 20px; font-weight: 700; color: #fff; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--pc), color-mix(in srgb, var(--pc) 55%, #6b3bff)); box-shadow: 0 6px 16px color-mix(in srgb, var(--pc) 35%, transparent);
+    transition: transform .35s var(--spring); position: relative; }
+  .card:hover .avatar { transform: scale(1.05) rotate(-3deg); }
+  .avatar .badge { position: absolute; right: -3px; bottom: -3px; width: 13px; height: 13px; border-radius: 50%; background: var(--green); border: 2.5px solid #fff; display: none; }
+  .running .avatar .badge { display: block; }
+  .names { flex: 1; min-width: 0; padding-top: 1px; }
+  .nm { display: flex; align-items: center; gap: 4px; min-width: 0; }
+  .name { font-size: 15.5px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 2px 4px; margin-left: -4px; border-radius: 6px; cursor: text; transition: background .15s; }
+  .name:hover { background: var(--field); }
+  .pen { width: 22px; height: 22px; border: 0; border-radius: 6px; background: none; color: var(--mute); display: grid; place-items: center; cursor: pointer; opacity: 0; transition: opacity .15s, background .15s; flex-shrink: 0; padding: 0; }
+  .pen svg { width: 13px; height: 13px; }
+  .card:hover .pen { opacity: 1; }
+  .pen:hover { background: var(--field); color: var(--text); }
+  .note { font-size: 12.5px; color: var(--sub); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 2px 4px; margin-left: -4px; border-radius: 6px; cursor: text; min-height: 21px; transition: background .15s; }
+  .note:hover { background: var(--field); }
+  .note.empty { color: transparent; }
+  .card:hover .note.empty { color: var(--mute); }
+  .inline { width: 100%; font-size: inherit; font-weight: inherit; color: var(--text); border: 1.5px solid var(--accent2); border-radius: 7px; padding: 1px 5px; margin-left: -5px; outline: none; background: #fff; box-shadow: 0 0 0 3px rgba(139,107,255,.15); }
+  .more, .check { width: 30px; height: 30px; border-radius: 9px; border: 0; background: transparent; color: var(--mute); display: grid; place-items: center; cursor: pointer; flex-shrink: 0; transition: background .15s, color .15s; padding: 0; }
+  .more:hover { background: var(--field); color: var(--text); }
+  .check { display: none; }
+  .check span { width: 20px; height: 20px; border-radius: 6px; border: 2px solid #c9ccd8; display: grid; place-items: center; transition: all .2s var(--spring); }
+  .selected .check span { background: var(--accent2); border-color: var(--accent2); }
+  .check svg { width: 13px; height: 13px; stroke: #fff; stroke-width: 3; opacity: 0; transform: scale(.5); transition: all .2s var(--spring); }
+  .selected .check svg { opacity: 1; transform: none; }
+  body.selecting .check { display: grid; }
+  body.selecting .more { display: none; }
+  .status { margin-top: 14px; font-size: 12.5px; color: var(--sub); display: flex; align-items: center; gap: 7px; }
+  .page { margin-top: 6px; font-size: 12px; color: var(--mute); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-height: 16px; }
+  .acts { margin-top: auto; padding-top: 12px; display: flex; gap: 8px; }
+  .acts .btn { height: 34px; flex: 1; font-size: 13px; }
+  .acts .btn.icon { flex: 0 0 34px; width: 34px; }
+  .acts .btn.go { background: color-mix(in srgb, var(--pc) 10%, #fff); border-color: color-mix(in srgb, var(--pc) 30%, #fff); color: color-mix(in srgb, var(--pc) 75%, #000); font-weight: 600; }
+  .acts .btn.go:hover { background: color-mix(in srgb, var(--pc) 16%, #fff); border-color: color-mix(in srgb, var(--pc) 50%, #fff); }
+  .key { position: absolute; right: 52px; top: 20px; font-size: 10.5px; color: var(--mute); border: 1px solid var(--line2); border-bottom-width: 2px; border-radius: 5px; padding: 0 5px; line-height: 15px; opacity: 0; transition: opacity .2s; }
+  .card:hover .key { opacity: 1; }
+  body.selecting .key { display: none; }
+  .add { border: 1.5px dashed #d3d6e2; background: rgba(255,255,255,.5); box-shadow: none; align-items: center; justify-content: center; color: var(--sub); gap: 10px; }
+  .add:hover { border-color: var(--accent2); color: var(--accent2); background: #fff; }
+  .add .plus { width: 46px; height: 46px; border-radius: 15px; display: grid; place-items: center; background: var(--field); font-size: 26px; transition: transform .4s var(--spring), background .2s, color .2s; }
+  .add:hover .plus { transform: rotate(90deg); background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; }
+  .add.disabled { opacity: .5; cursor: not-allowed; }
+  .add.disabled:hover { transform: none; border-color: #d3d6e2; color: var(--sub); box-shadow: none; }
+  .add.disabled:hover .plus { transform: none; background: var(--field); color: inherit; }
+  .add small { color: var(--mute); font-size: 11.5px; }
+  footer { margin-top: 28px; display: flex; justify-content: space-between; align-items: center; color: var(--mute); font-size: 12px; flex-wrap: wrap; gap: 10px; }
+  footer .credit { color: var(--sub); }
+  footer .credit b { font-weight: 600; }
+  kbd { font-family: inherit; font-size: 11px; border: 1px solid var(--line2); border-bottom-width: 2px; border-radius: 5px; padding: 0 5px; margin: 0 2px; color: var(--sub); background: #fff; }
+
+  /* 多选操作条 */
+  #selbar { position: fixed; left: 50%; bottom: 24px; z-index: 70; transform: translate(-50%, 120px); opacity: 0; transition: transform .4s var(--spring), opacity .25s;
+    background: #1f2130; color: #fff; border-radius: 18px; padding: 8px 8px 8px 18px; display: flex; align-items: center; gap: 8px; box-shadow: 0 18px 40px rgba(20,24,60,.3); }
+  body.selecting #selbar { transform: translate(-50%, 0); opacity: 1; }
+  #selbar .n { font-size: 13px; margin-right: 6px; white-space: nowrap; }
+  #selbar .btn { height: 34px; background: rgba(255,255,255,.1); border: 0; color: #fff; }
+  #selbar .btn:hover:not(:disabled) { background: rgba(255,255,255,.18); box-shadow: none; }
+  #selbar .btn.primary { background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+
+  /* 菜单 / 对话框 / 提示 */
+  .menu { position: fixed; z-index: 80; background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 5px; min-width: 176px;
+    box-shadow: 0 14px 36px rgba(20,24,60,.16); transform-origin: top right; animation: menuIn .16s var(--ease); }
+  @keyframes menuIn { from { opacity: 0; transform: scale(.94) translateY(-4px); } }
+  .menu button { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; border: 0; background: none; color: var(--text); padding: 8px 10px; border-radius: 8px; font-size: 13px; cursor: pointer; }
+  .menu button:hover { background: var(--field); }
+  .menu button.danger { color: var(--danger); }
+  .menu hr { border: 0; border-top: 1px solid var(--line); margin: 4px 6px; }
+  .modal-bg { position: fixed; inset: 0; background: rgba(30, 33, 52, .28); backdrop-filter: blur(6px); display: grid; place-items: center; z-index: 90; opacity: 0; pointer-events: none; transition: opacity .22s var(--ease); }
+  .modal-bg.show { opacity: 1; pointer-events: auto; }
+  .modal { background: #fff; border-radius: 20px; padding: 24px; width: 400px; max-width: calc(100vw - 40px); box-shadow: 0 30px 70px rgba(20,24,60,.22); transform: scale(.95) translateY(10px); transition: transform .32s var(--spring); }
+  .modal.wide { width: 480px; }
+  .modal { max-height: calc(100vh - 40px); overflow-y: auto; }
+  .modal-bg.show .modal { transform: none; }
+  .modal h3 { margin: 0 0 6px; font-size: 17px; }
+  .modal p { color: var(--sub); font-size: 13px; line-height: 1.6; margin: 0 0 16px; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12px; color: var(--sub); margin-bottom: 6px; }
+  .input { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1.5px solid var(--line2); background: #fff; color: var(--text); font-size: 14px; outline: none; transition: border-color .2s, box-shadow .2s; }
+  .input:focus { border-color: var(--accent2); box-shadow: 0 0 0 4px rgba(139,107,255,.14); }
+  .swatches { display: flex; flex-wrap: wrap; gap: 9px; }
+  .sw { width: 28px; height: 28px; border-radius: 50%; border: 0; cursor: pointer; transition: transform .25s var(--spring), box-shadow .2s; }
+  .sw:hover { transform: scale(1.15); }
+  .sw.on { box-shadow: 0 0 0 3px #fff, 0 0 0 5px currentColor; }
+  .preview { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; padding: 12px; border-radius: 14px; background: var(--field); }
+  .preview .avatar { width: 44px; height: 44px; font-size: 19px; }
+  .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+  .row { display: flex; align-items: center; justify-content: space-between; padding: 13px 0; border-top: 1px solid var(--line); gap: 16px; }
+  .row:first-of-type { border-top: 0; }
+  .row .t { font-size: 14px; }
+  .row .d { font-size: 12px; color: var(--sub); margin-top: 3px; }
+  .seg { display: flex; background: var(--field); border-radius: 10px; padding: 3px; position: relative; flex-shrink: 0; }
+  .seg button { position: relative; z-index: 1; border: 0; background: none; color: var(--sub); padding: 6px 11px; font-size: 12.5px; cursor: pointer; border-radius: 8px; transition: color .2s; }
+  .seg button.on { color: var(--text); font-weight: 600; }
+  .seg .thumb { position: absolute; top: 3px; bottom: 3px; border-radius: 8px; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.1); transition: left .3s var(--spring), width .3s var(--spring); }
+  .switch { width: 44px; height: 26px; border-radius: 13px; background: #dcdfe8; border: 0; position: relative; cursor: pointer; transition: background .25s; flex-shrink: 0; }
+  .switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: transform .3s var(--spring); box-shadow: 0 2px 5px rgba(0,0,0,.2); }
+  .switch.on { background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+  .switch.on::after { transform: translateX(18px); }
+  .skins { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+  .skin { border: 1.5px solid var(--line2); border-radius: 11px; padding: 0; background: #fff; cursor: pointer; overflow: hidden; text-align: left;
+    transition: transform .2s var(--spring), border-color .15s, box-shadow .2s; }
+  .skin:hover { transform: translateY(-2px); }
+  .skin.on { border-color: var(--accent2); box-shadow: 0 0 0 3px rgba(139,107,255,.18); }
+  .skin .sv { height: 34px; position: relative; }
+  .skin .sv i { position: absolute; left: 0; right: 0; top: 0; height: 11px; }
+  .skin .sv b { position: absolute; left: 6px; right: 14px; top: 16px; height: 5px; border-radius: 3px; opacity: .35; }
+  .skin span { display: block; font-size: 11px; padding: 4px 6px 5px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .skin.follow .sv { background: repeating-linear-gradient(135deg, #f2f3f7 0 6px, #e8eaf1 6px 12px); display: grid; place-items: center; font-size: 15px; }
+  /* 批量打开网页 */
+  textarea.input { resize: vertical; min-height: 96px; line-height: 1.6; font-family: inherit; }
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; }
+  .chip { display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 12px 0 5px; border-radius: 16px; border: 1.5px solid var(--line2);
+    background: #fff; cursor: pointer; font-size: 12.5px; color: var(--text); transition: all .18s var(--ease); }
+  .chip i { width: 22px; height: 22px; border-radius: 8px; display: grid; place-items: center; color: #fff; font-style: normal; font-size: 11px; font-weight: 700; background: var(--pc); }
+  .chip.on { border-color: var(--pc); background: color-mix(in srgb, var(--pc) 10%, #fff); }
+  .chip:not(.on) { opacity: .55; }
+  .chip:not(.on) i { filter: grayscale(1); }
+  .chip .run { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+  .opts { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; font-size: 13px; color: var(--text); }
+  .opts label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+  .opts input { accent-color: var(--accent2); width: 15px; height: 15px; }
+  .summary { font-size: 12.5px; color: var(--sub); margin-right: auto; }
+  .linkbtn { border: 0; background: none; color: var(--accent2); font-size: 12px; cursor: pointer; padding: 0; float: right; }
+  .rn-grid { display: grid; grid-template-columns: 1fr 110px; gap: 10px; }
+  .rn-preview { max-height: 190px; overflow-y: auto; border-radius: 12px; background: var(--field); padding: 6px 10px; font-size: 13px; }
+  .rn-preview div { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+  .rn-preview i { width: 22px; height: 22px; border-radius: 7px; display: grid; place-items: center; color: #fff; font-style: normal; font-size: 11px; font-weight: 700; flex-shrink: 0; background: var(--pc); }
+  .rn-preview .old { color: var(--mute); text-decoration: line-through; }
+  .rn-preview .arrow { color: var(--mute); }
+  .rn-preview b { font-weight: 600; }
+  .about { font-size: 12px; color: var(--sub); margin-top: 8px; text-align: center; line-height: 1.7; }
+  .toast { position: fixed; bottom: 26px; left: 50%; z-index: 95; background: #1f2130; color: #fff; padding: 10px 18px; border-radius: 12px; font-size: 13px;
+    box-shadow: 0 10px 30px rgba(20,24,60,.25); transform: translate(-50%, 30px); opacity: 0; transition: all .35s var(--spring); pointer-events: none; }
+  .toast.show { transform: translate(-50%, 0); opacity: 1; }
+  /* 省资源模式：去掉大面积模糊（老显卡最吃力的部分） */
+  body.lite .bgdeco, body.lite .ring { display: none; }
+  body.lite *, body.lite *::before, body.lite *::after { animation-duration: 0s !important; animation-delay: 0s !important; transition: none !important; backdrop-filter: none !important; }
+  body.lite .modal-bg { backdrop-filter: none; }
+  body.lite .card { transition: box-shadow .15s, border-color .15s; }
+  body.lite .card:hover { transform: none; }
+  body.selecting .toast { bottom: 90px; }
+</style>
+</head>
+<body>
+<div class="drag"></div>
+<div class="bgdeco"><i></i><i></i><i></i></div>
+
+<div id="splash">
+  <div class="bgdeco"><i></i><i></i><i></i></div>
+  <div class="s-center">
+    <div class="ring"></div><div class="ring r2"></div>
+    <div class="logo"><svg viewBox="0 0 100 100"><path d="M22 18 L50 52 L78 18 M50 52 L50 84"/></svg></div>
+    <div class="word" id="word"></div>
+    <div class="slogan">一个内核 · 十个独立世界</div>
+    <div class="loadbar"><i></i></div>
+  </div>
+  <div class="maker">小应同学ying 制作</div>
+</div>
+
+<main>
+  <header>
+    <div class="brand reveal" style="--i:0">
+      <div class="mini"><svg viewBox="0 0 100 100"><path d="M22 18 L50 52 L78 18 M50 52 L50 84"/></svg></div>
+      <div>
+        <h1><span class="grad">YYING</span>浏览器</h1>
+        <div class="tag">共用一个内核 · 每个浏览器的登录、Cookie、历史记录都独立保存</div>
+      </div>
+    </div>
+    <div class="hright reveal" style="--i:1">
+      <button class="btn primary" id="batchBtn" title="在多个浏览器里各打开同样的网页"><svg class="i" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/><path d="M18 15l3 3-3 3"/></svg>批量打开网页</button>
+      <button class="btn" id="allBgBtn" title="把还没打开的浏览器全部在后台打开，之后切换都是无缝的"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="7" width="13" height="13" rx="2.5"/><path d="M8 7V5.5A2.5 2.5 0 0 1 10.5 3H18.5A2.5 2.5 0 0 1 21 5.5v8a2.5 2.5 0 0 1-2.5 2.5H16"/></svg>全部后台打开</button>
+      <button class="btn" id="fsBtn" title="所有已打开的浏览器一起全屏，再点一下一起退出"><svg class="i" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg><span id="fsLabel">一键全屏</span></button>
+      <button class="btn" id="renameBtn" title="把多个浏览器按顺序改成 名字+数字，比如 微店1、微店2…"><svg class="i" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M14 6l4 4M15 20h6"/></svg>批量改名</button>
+      <button class="btn" id="tileBtn" title="把所有打开的浏览器窗口平铺到屏幕上"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="4" width="8" height="7" rx="1.5"/><rect x="13" y="4" width="8" height="7" rx="1.5"/><rect x="3" y="13" width="8" height="7" rx="1.5"/><rect x="13" y="13" width="8" height="7" rx="1.5"/></svg>排列窗口</button>
+      <button class="btn" id="selBtn"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M8 12l3 3 5-6"/></svg>多选</button>
+      <button class="btn icon" id="settingsBtn" title="设置"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+    </div>
+  </header>
+  <div class="stats reveal" style="--i:2">
+    <span>已创建 <b id="count">0</b> / 10<span class="meter"><i id="meter"></i></span></span>
+    <span class="live"><span class="dot" id="liveDot"></span><b id="running">0</b> 个正在运行</span>
+  </div>
+  <div class="grid" id="grid"></div>
+  <footer class="reveal" style="--i:14">
+    <div>单击卡片打开 · 双击名字改名 · 拖动卡片排序 · <kbd>1</kbd>–<kbd>0</kbd> 打开 · <kbd>N</kbd> 新建</div>
+    <div class="credit">YYING浏览器 · <b>小应同学ying</b> 制作</div>
+  </footer>
+</main>
+
+<div id="selbar">
+  <span class="n" id="selN">已选 0 个</span>
+  <button class="btn" id="selAll">全选</button>
+  <button class="btn primary" id="selOpen">打开</button>
+  <button class="btn" id="selUrl">打开网页…</button>
+  <button class="btn" id="selRename">批量改名…</button>
+  <button class="btn" id="selClose">关闭窗口</button>
+  <button class="btn" id="selDone">完成</button>
+</div>
+<div class="modal-bg" id="modalBg"><div class="modal" id="modal"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const q = new URLSearchParams(location.search);
+let profiles = [];
+let settings = {};
+let info = { colors: [], max: 10 };
+let firstRender = true;
+let selecting = false;
+const selected = new Set();
+if (window.yy.platform === 'win32') document.body.classList.add('win');
+if (q.get('lite') === '1') document.body.classList.add('lite');
+
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+// 头像上的字：名字里有数字就显示数字（“浏览器 1” → 1，“小号 12” → 12），否则显示第一个字
+const initial = (name) => { const m = String(name || '').match(/\d+/); return m ? m[0].slice(0, 2) : [...(String(name || '').trim() || 'Y')][0].toUpperCase(); };
+const ICON = {
+  pen: '<svg class="i" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M14 6l4 4"/></svg>',
+  more: '<svg class="i" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></svg>',
+  check: '<svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>',
+  x: '<svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+  open: '<svg class="i" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
+  focus: '<svg class="i" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3 9h18"/></svg>',
+};
+
+// ---------- 开机动画 ----------
+$('word').innerHTML = [...'YYING浏览器'].map((ch, i) => `<span class="${i < 5 ? 'grad' : ''}" style="animation-delay:${700 + i * 45}ms">${ch}</span>`).join('');
+let revealed = false;
+function afterReveal() {
+  if (q.get('settings') === '1') setTimeout(openSettings, 250);
+  if (q.get('edit')) setTimeout(() => editById(q.get('edit')), 250);
+  if (q.get('batch')) setTimeout(() => { try { openBatch(JSON.parse(q.get('batch'))); } catch {} }, 350);
+}
+function reveal() {
+  if (revealed) return;
+  revealed = true;
+  $('splash').classList.add('out');
+  document.body.classList.add('ready');
+  setTimeout(() => $('splash').remove(), 800);
+  afterReveal();
+}
+if (q.get('boot') === '1') {
+  setTimeout(reveal, 2300);
+  $('splash').addEventListener('click', reveal);
+  addEventListener('keydown', reveal, { once: true });
+} else {
+  $('splash').remove();
+  revealed = true;
+  requestAnimationFrame(() => document.body.classList.add('ready'));
+  afterReveal();
+}
+
+// ---------- 提示 / 菜单 / 对话框 ----------
+function toast(msg) {
+  const t = $('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 2200);
+}
+function closeMenu() { document.querySelectorAll('.menu').forEach((m) => m.remove()); }
+function showMenu(x, y, items) {
+  closeMenu();
+  const m = document.createElement('div');
+  m.className = 'menu';
+  for (const it of items) {
+    if (it === '-') { m.appendChild(document.createElement('hr')); continue; }
+    const b = document.createElement('button');
+    b.textContent = it.label;
+    if (it.danger) b.className = 'danger';
+    b.onclick = (e) => { e.stopPropagation(); closeMenu(); it.click(); };
+    m.appendChild(b);
+  }
+  document.body.appendChild(m);
+  const r = m.getBoundingClientRect();
+  let left = x - r.width;
+  if (left < 10) { left = x; m.style.transformOrigin = 'top left'; }
+  m.style.left = `${Math.min(left, innerWidth - r.width - 10)}px`;
+  m.style.top = `${Math.min(y, innerHeight - r.height - 10)}px`;
+}
+document.addEventListener('click', closeMenu);
+addEventListener('blur', closeMenu);
+
+let modalDone = null;
+function openModal(html, wide = false) {
+  $('modal').className = 'modal' + (wide ? ' wide' : '');
+  $('modal').innerHTML = html;
+  $('modalBg').classList.add('show');
+}
+function closeModal(v = null) {
+  $('modalBg').classList.remove('show');
+  const d = modalDone; modalDone = null;
+  if (d) d(v);
+}
+const modalOpen = () => $('modalBg').classList.contains('show');
+$('modalBg').addEventListener('mousedown', (e) => { if (e.target === $('modalBg')) closeModal(); });
+addEventListener('keydown', (e) => { if (e.key === 'Escape' && modalOpen()) closeModal(); });
+
+function confirmBox(title, text, ok) {
+  return new Promise((resolve) => {
+    modalDone = resolve;
+    openModal(`<h3>${esc(title)}</h3><p>${esc(text)}</p>
+      <div class="actions"><button class="btn" data-x>取消</button><button class="btn primary" data-ok style="background:var(--danger)">${esc(ok)}</button></div>`);
+    $('modal').querySelector('[data-x]').onclick = () => closeModal(false);
+    $('modal').querySelector('[data-ok]').onclick = () => closeModal(true);
+  });
+}
+
+function profileForm({ title, p, ok }) {
+  return new Promise((resolve) => {
+    let picked = p.color;
+    modalDone = resolve;
+    openModal(`<h3>${esc(title)}</h3><p>每个浏览器的登录信息、Cookie 和历史记录都单独保存，互不影响。</p>
+      <div class="preview" id="pv"><div class="avatar" id="pvA"></div><div style="min-width:0"><div style="font-weight:600" id="pvN"></div><div style="font-size:12px;color:var(--sub)" id="pvT"></div></div></div>
+      <div class="field"><label>名称</label><input class="input" id="fName" maxlength="20" placeholder="例如：工作号、小号 1"></div>
+      <div class="field"><label>备注（可选）</label><input class="input" id="fNote" maxlength="40" placeholder="例如：登录的账号、用途"></div>
+      <div class="field"><label>启动页（可选）</label><input class="input" id="fUrl" placeholder="打开时先进入的网址，留空则打开新标签页" spellcheck="false"></div>
+      <div class="field"><label>颜色</label><div class="swatches" id="fSw"></div></div>
+      <div class="field"><label>主题（这个浏览器窗口的配色）</label><div id="fSkin">${skinGrid(p.skin || '', true)}</div></div>
+      <div class="actions"><button class="btn" data-x>取消</button><button class="btn primary" data-ok>${esc(ok)}</button></div>`, true);
+    let skin = p.skin || '';
+    bindSkinGrid($('fSkin'), (v) => { skin = v; });
+    const name = $('fName'), note = $('fNote'), url = $('fUrl');
+    name.value = p.name || ''; note.value = p.note || ''; url.value = p.startUrl || '';
+    const sync = () => {
+      $('pv').style.setProperty('--pc', picked);
+      $('pvA').textContent = initial(name.value.trim());
+      $('pvN').textContent = name.value.trim() || '未命名';
+      $('pvT').textContent = note.value.trim() || '没有备注';
+      $('fSw').querySelectorAll('.sw').forEach((b) => b.classList.toggle('on', b.dataset.c === picked));
+    };
+    for (const c of info.colors) {
+      const b = document.createElement('button');
+      b.className = 'sw'; b.dataset.c = c; b.style.background = c; b.style.color = c;
+      b.onclick = () => { picked = c; sync(); };
+      $('fSw').appendChild(b);
+    }
+    const submit = () => closeModal({ name: name.value.trim(), note: note.value.trim(), startUrl: url.value.trim(), color: picked, skin });
+    for (const el of [name, note, url]) { el.oninput = sync; el.onkeydown = (e) => { if (e.key === 'Enter') submit(); }; }
+    $('modal').querySelector('[data-x]').onclick = () => closeModal(null);
+    $('modal').querySelector('[data-ok]').onclick = submit;
+    sync();
+    setTimeout(() => { name.focus(); name.select(); }, 60);
+  });
+}
+
+// ---------- 主题选择 ----------
+function skinGrid(current, withFollow) {
+  const items = (withFollow ? [{ id: '', name: '跟随默认', follow: true }] : []).concat(info.skins || []);
+  return `<div class="skins">${items.map((k) => {
+    const prev = k.follow ? '<div class="sv">↺</div>'
+      : k.id === 'classic' ? '<div class="sv" style="background:linear-gradient(90deg,#fff 50%,#2a2b33 50%)"><i style="background:linear-gradient(90deg,#e6e8ef 50%,#1a1b21 50%)"></i></div>'
+      : `<div class="sv" style="background:${esc(k.nt || k.tool)}"><i style="background:${esc(k.bar)}"></i><b style="background:${esc(k.text)}"></b></div>`;
+    return `<button class="skin ${k.follow ? 'follow' : ''} ${k.id === current ? 'on' : ''}" data-skin="${esc(k.id)}" title="${esc(k.name)}">${prev}<span>${esc(k.name)}</span></button>`;
+  }).join('')}</div>`;
+}
+function bindSkinGrid(root, onPick) {
+  root.querySelectorAll('.skin').forEach((b) => {
+    b.onclick = () => {
+      root.querySelectorAll('.skin').forEach((x) => x.classList.toggle('on', x === b));
+      onPick(b.dataset.skin);
+    };
+  });
+}
+
+// ---------- 批量打开网页：在选中的每个浏览器里各打开同样的网页 ----------
+function lastUrls() { try { return localStorage.getItem('batchUrls') || ''; } catch { return ''; } }
+function openBatch({ ids, url } = {}) {
+  if (!profiles.length) return;
+  const picked = new Set(ids && ids.length ? ids : profiles.map((p) => p.id));
+  let mode = 'newtab';
+  modalDone = null;
+  openModal(`<h3>批量打开网页</h3><p>在选中的每个浏览器里打开同样的网页。每个浏览器用自己的登录，互不影响。</p>
+    <div class="field"><label>网址（每行一个，最多 20 个；也可以写搜索词）</label>
+      <textarea class="input" id="bUrls" placeholder="例如：&#10;https://www.taobao.com&#10;weibo.com&#10;今天的天气" spellcheck="false"></textarea></div>
+    <div class="field"><label>在哪些浏览器里打开 <button class="linkbtn" id="bAll"></button></label><div class="chips" id="bChips"></div></div>
+    <div class="field"><div class="opts">
+      <label><input type="radio" name="bm" value="newtab" checked>在新标签页打开</label>
+      <label><input type="radio" name="bm" value="current">替换当前页面</label>
+      <label><input type="checkbox" id="bTile" checked>打开后排列窗口</label>
+    </div></div>
+    <div class="actions"><span class="summary" id="bSum"></span><button class="btn" data-x>取消</button><button class="btn primary" data-ok>开始打开</button></div>`, true);
+  const ta = $('bUrls');
+  ta.value = url || lastUrls();
+  const urls = () => ta.value.split('\n').map((x) => x.trim()).filter(Boolean).slice(0, 20);
+  const sync = () => {
+    $('bChips').querySelectorAll('.chip').forEach((c) => c.classList.toggle('on', picked.has(c.dataset.id)));
+    $('bAll').textContent = picked.size === profiles.length ? '全不选' : '全选';
+    const n = urls().length;
+    $('bSum').textContent = n && picked.size ? `将在 ${picked.size} 个浏览器中各打开 ${n} 个网页` : '请填写网址并选择浏览器';
+    $('modal').querySelector('[data-ok]').disabled = !n || !picked.size;
+  };
+  $('bChips').innerHTML = profiles.map((p) => `<button class="chip" data-id="${esc(p.id)}" style="--pc:${esc(p.color)}"><i>${esc(initial(p.name))}</i>${esc(p.name)}${p.running ? '<span class="run" title="运行中"></span>' : ''}</button>`).join('');
+  $('bChips').querySelectorAll('.chip').forEach((c) => { c.onclick = () => { if (picked.has(c.dataset.id)) picked.delete(c.dataset.id); else picked.add(c.dataset.id); sync(); }; });
+  $('bAll').onclick = () => { if (picked.size === profiles.length) picked.clear(); else profiles.forEach((p) => picked.add(p.id)); sync(); };
+  $('modal').querySelectorAll('input[name=bm]').forEach((r) => { r.onchange = () => { mode = r.value; }; });
+  ta.oninput = sync;
+  $('modal').querySelector('[data-x]').onclick = () => closeModal();
+  $('modal').querySelector('[data-ok]').onclick = async () => {
+    const list = urls();
+    try { localStorage.setItem('batchUrls', list.join('\n')); } catch {}
+    const ids = profiles.map((p) => p.id).filter((id) => picked.has(id));
+    closeModal();
+    if (selecting) setSelecting(false);
+    toast(`正在 ${ids.length} 个浏览器中打开网页…`);
+    await window.yy.batchOpen({ ids, urls: list, mode, tile: $('bTile')?.checked ?? true });
+  };
+  sync();
+  setTimeout(() => { ta.focus(); ta.select(); }, 60);
+}
+$('batchBtn').onclick = () => openBatch();
+$('selUrl').onclick = () => openBatch({ ids: [...selected] });
+
+// 低性能模式的内核优化要重启才完全生效
+function syncRestart() {
+  const box = $('lpRestart');
+  if (!box) return;
+  box.innerHTML = settings.needRestart ? '<br>动画和休眠已立即生效，内核优化需要重启：<button class="btn" id="lpBtn" style="height:26px;padding:0 10px;font-size:12px;margin-top:6px">立即重启浏览器</button>' : '';
+  if ($('lpBtn')) $('lpBtn').onclick = () => window.yy.relaunch();
+}
+
+// ---------- 批量改名：名字 + 顺序数字（微店 → 微店1、微店2、微店3…） ----------
+function openRename({ ids } = {}) {
+  if (!profiles.length) return;
+  const picked = new Set(ids && ids.length ? ids : profiles.map((p) => p.id));
+  modalDone = null;
+  openModal(`<h3>批量改名</h3><p>按卡片顺序改成「名字 + 数字」，例如填“微店”，就会改成 微店1、微店2、微店3…，头像也会显示对应的数字。</p>
+    <div class="rn-grid">
+      <div class="field"><label>名字</label><input class="input" id="rnName" maxlength="16" placeholder="例如：微店"></div>
+      <div class="field"><label>从几开始</label><input class="input" id="rnStart" type="number" min="0" max="999" value="1"></div>
+    </div>
+    <div class="field"><label>改哪些浏览器 <button class="linkbtn" id="rnAll"></button></label><div class="chips" id="rnChips"></div></div>
+    <div class="field"><label>预览</label><div class="rn-preview" id="rnPrev"></div></div>
+    <div class="actions"><span class="summary" id="rnSum"></span><button class="btn" data-x>取消</button><button class="btn primary" data-ok>改名</button></div>`, true);
+  const nameEl = $('rnName'), startEl = $('rnStart');
+  const plan = () => {
+    const base = nameEl.value.trim();
+    let n = Math.max(0, parseInt(startEl.value, 10) || 0);
+    return profiles.filter((p) => picked.has(p.id)).map((p) => ({ p, name: base ? `${base}${n++}` : '' }));
+  };
+  const sync = () => {
+    $('rnChips').querySelectorAll('.chip').forEach((c) => c.classList.toggle('on', picked.has(c.dataset.id)));
+    $('rnAll').textContent = picked.size === profiles.length ? '全不选' : '全选';
+    const list = plan();
+    $('rnPrev').innerHTML = list.length
+      ? list.map(({ p, name }) => `<div style="--pc:${esc(p.color)}"><i>${esc(initial(name || p.name))}</i><span class="old">${esc(p.name)}</span><span class="arrow">→</span><b>${esc(name || '（先填名字）')}</b></div>`).join('')
+      : '<div style="color:var(--mute)">还没有选浏览器</div>';
+    const ok = list.length && nameEl.value.trim();
+    $('rnSum').textContent = ok ? `将改名 ${list.length} 个浏览器` : '';
+    $('modal').querySelector('[data-ok]').disabled = !ok;
+  };
+  $('rnChips').innerHTML = profiles.map((p) => `<button class="chip" data-id="${esc(p.id)}" style="--pc:${esc(p.color)}"><i>${esc(initial(p.name))}</i>${esc(p.name)}</button>`).join('');
+  $('rnChips').querySelectorAll('.chip').forEach((c) => { c.onclick = () => { if (picked.has(c.dataset.id)) picked.delete(c.dataset.id); else picked.add(c.dataset.id); sync(); }; });
+  $('rnAll').onclick = () => { if (picked.size === profiles.length) picked.clear(); else profiles.forEach((p) => picked.add(p.id)); sync(); };
+  nameEl.oninput = sync; startEl.oninput = sync;
+  const submit = async () => {
+    const list = plan().filter((x) => x.name);
+    if (!list.length) return;
+    closeModal();
+    if (selecting) setSelecting(false);
+    await window.yy.renameMany(list.map(({ p, name }) => ({ id: p.id, name })));
+    toast(`已改名 ${list.length} 个浏览器`);
+  };
+  nameEl.onkeydown = startEl.onkeydown = (e) => { if (e.key === 'Enter') submit(); };
+  $('modal').querySelector('[data-x]').onclick = () => closeModal();
+  $('modal').querySelector('[data-ok]').onclick = submit;
+  sync();
+  setTimeout(() => nameEl.focus(), 60);
+}
+$('renameBtn').onclick = () => openRename();
+$('selRename').onclick = () => openRename({ ids: [...selected] });
+
+// ---------- 设置 ----------
+const seg = (key, options) => `<div class="seg" data-key="${key}"><span class="thumb"></span>${options.map(([v, l]) => `<button data-v="${v}">${l}</button>`).join('')}</div>`;
+function syncSeg(el) {
+  el.querySelectorAll('button').forEach((b) => {
+    const on = b.dataset.v === settings[el.dataset.key];
+    b.classList.toggle('on', on);
+    if (on) { const t = el.querySelector('.thumb'); t.style.left = `${b.offsetLeft}px`; t.style.width = `${b.offsetWidth}px`; }
+  });
+}
+function openSettings() {
+  modalDone = null;
+  openModal(`<h3>设置</h3><p>对所有浏览器生效。</p>
+    <div class="field" style="margin:4px 0 6px"><label>默认主题（没有单独设置主题的浏览器都用这个）</label><div id="sSkin">${skinGrid(settings.skin || 'classic', false)}</div></div>
+    <div class="row"><div><div class="t">重新打开时恢复标签页</div><div class="d">关掉浏览器后再打开，回到上次的网页</div></div><button class="switch" data-key="restoreTabs"></button></div>
+    <div class="row"><div><div class="t">默认搜索引擎</div><div class="d">地址栏和新标签页使用</div></div>${seg('engine', [['bing', '必应国际版'], ['google', 'Google'], ['baidu', '百度']])}</div>
+    <div class="row"><div><div class="t">低性能模式</div><div class="d">老电脑或卡顿时打开：关闭动画和特效、标签页 3 分钟休眠、视频不自动播放、精简内核渲染${settings.lowEnd ? `<br><b style="color:var(--accent2)">这台电脑 ${info.memGB}GB 内存 · ${info.cpus} 核，建议打开</b>` : ''}<span id="lpRestart"></span></div></div><button class="switch" data-key="lowPerf"></button></div>
+    <div class="row"><div><div class="t">标签页自动休眠</div><div class="d">长时间没看的标签页释放内存，点回来自动加载</div></div><button class="switch" data-key="tabSleep"></button></div>
+    <div class="row"><div><div class="t">硬件加速</div><div class="d">${settings.gpuCrashes >= 3 && !settings.hardwareAcceleration ? '检测到显卡驱动问题，已自动关闭；' : ''}白屏或闪烁时可关闭，重启浏览器后生效</div></div><button class="switch" data-key="hardwareAcceleration"></button></div>
+    <div class="row"><div><div class="t">浏览器外观</div><div class="d">浏览器窗口和新标签页的配色</div></div>${seg('theme', [['system', '跟随系统'], ['light', '浅色'], ['dark', '深色']])}</div>
+    <div class="row"><div><div class="t">右侧浏览器栏</div><div class="d">在窗口右边列出所有浏览器，点一下就在原位置切换</div></div><button class="switch" data-key="sidebar"></button></div>
+    <div class="row"><div><div class="t">显示书签栏</div><div class="d">在地址栏下方显示书签</div></div><button class="switch" data-key="bookmarksBar"></button></div>
+    <div class="row"><div><div class="t">开机动画</div><div class="d">启动时播放 YYING 动画</div></div><button class="switch" data-key="bootAnimation"></button></div>
+    <div class="about">YYING浏览器 ${esc(info.version || '')} · Chromium ${esc(info.chrome || '')}<br>小应同学ying 制作</div>
+    <div class="actions"><button class="btn primary" data-x>完成</button></div>`, true);
+  const m = $('modal');
+  m.querySelectorAll('.seg').forEach((el) => {
+    el.querySelectorAll('button').forEach((b) => { b.onclick = async () => { settings = await window.yy.setSettings({ [el.dataset.key]: b.dataset.v }); syncSeg(el); }; });
+    requestAnimationFrame(() => syncSeg(el));
+  });
+  m.querySelectorAll('.switch').forEach((el) => {
+    el.classList.toggle('on', !!settings[el.dataset.key]);
+    el.onclick = async () => {
+      settings = await window.yy.setSettings({ [el.dataset.key]: !settings[el.dataset.key] });
+      el.classList.toggle('on', !!settings[el.dataset.key]);
+      syncRestart();
+      render();
+    };
+  });
+  bindSkinGrid($('sSkin'), async (v) => { settings = await window.yy.setSettings({ skin: v }); });
+  syncRestart();
+  m.querySelector('[data-x]').onclick = () => closeModal();
+}
+$('settingsBtn').onclick = openSettings;
+
+// ---------- 操作 ----------
+function launch(p) {
+  const el = cards.get(p.id);
+  if (el) { el.classList.remove('launch'); void el.offsetWidth; el.classList.add('launch'); }
+  window.yy.open(p.id);
+}
+async function editProfile(p) {
+  const r = await profileForm({ title: '编辑浏览器', p, ok: '保存' });
+  if (r) { await window.yy.update(p.id, r); toast('已保存'); }
+}
+function editById(id) { const p = profiles.find((x) => x.id === id); if (p) editProfile(p); }
+async function createProfile() {
+  if (profiles.length >= info.max) return toast(`最多只能创建 ${info.max} 个浏览器`);
+  const used = new Set(profiles.map((p) => p.color));
+  const r = await profileForm({ title: '新建浏览器', p: { name: `浏览器 ${profiles.length + 1}`, color: info.colors.find((c) => !used.has(c)) || info.colors[0] }, ok: '创建' });
+  if (!r) return;
+  const res = await window.yy.create(r.name, r.color, { note: r.note, startUrl: r.startUrl, skin: r.skin });
+  if (res.error) toast(res.error); else toast(`已创建「${res.profile.name}」`);
+}
+function cardMenu(p, x, y) {
+  showMenu(x, y, [
+    p.running ? { label: '切换到窗口', click: () => window.yy.open(p.id) } : { label: '打开', click: () => launch(p) },
+    ...(p.running ? [{ label: '关闭窗口', click: () => window.yy.closeWin(p.id) }] : []),
+    { label: '用这个浏览器打开网页…', click: () => openBatch({ ids: [p.id] }) },
+    '-',
+    { label: '重命名', click: () => startInline(p.id, 'name') },
+    { label: '批量改名…', click: () => openRename() },
+    { label: '编辑备注、启动页和颜色…', click: () => editProfile(p) },
+    '-',
+    { label: '清除登录信息和历史记录…', click: async () => {
+      if (await confirmBox(`清除「${p.name}」的数据？`, '会清除这个浏览器的 Cookie、登录状态、缓存和历史记录，需要重新登录网站。其他浏览器不受影响。', '清除')) {
+        await window.yy.clear(p.id); toast('已清除');
+      }
+    } },
+    { label: '删除浏览器…', danger: true, click: async () => {
+      if (await confirmBox(`删除「${p.name}」？`, '这个浏览器的登录信息、历史记录、书签都会被永久删除，无法恢复。', '删除')) {
+        await window.yy.remove(p.id); selected.delete(p.id); toast('已删除');
+      }
+    } },
+  ]);
+}
+
+// 卡片上直接改名字 / 备注
+function startInline(id, field) {
+  const el = cards.get(id);
+  const p = profiles.find((x) => x.id === id);
+  if (!el || !p || el.dataset.editing) return;
+  const target = el.querySelector(field === 'name' ? '.name' : '.note');
+  el.dataset.editing = field;
+  el.draggable = false;
+  const input = document.createElement('input');
+  input.className = 'inline';
+  input.maxLength = field === 'name' ? 20 : 40;
+  input.value = p[field] || '';
+  input.placeholder = field === 'name' ? '浏览器名称' : '添加备注，例如登录的账号';
+  target.replaceWith(input);
+  input.focus(); input.select();
+  let done = false;
+  const finish = async (save) => {
+    if (done) return;
+    done = true;
+    const v = input.value.trim();
+    input.replaceWith(target);
+    delete el.dataset.editing;
+    el.draggable = true;
+    if (save && v !== (p[field] || '') && (field === 'note' || v)) {
+      target.textContent = v;
+      await window.yy.update(id, { [field]: v });
+    }
+    render();
+  };
+  input.onkeydown = (e) => { e.stopPropagation(); if (e.key === 'Enter') finish(true); if (e.key === 'Escape') finish(false); };
+  input.onblur = () => finish(true);
+  input.onclick = (e) => e.stopPropagation();
+  input.ondblclick = (e) => e.stopPropagation();
+}
+
+// ---------- 卡片（按 id 复用 DOM，后台刷新不会打断输入和动画） ----------
+const cards = new Map();
+let dragId = null;
+const grid = $('grid');
+const addCard = document.createElement('div');
+addCard.className = 'card add reveal';
+addCard.onclick = createProfile;
+grid.appendChild(addCard);
+
+function buildCard(id) {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.dataset.id = id;
+  card.draggable = true;
+  card.innerHTML = `
+    <span class="key"></span>
+    <div class="top">
+      <div class="avatar"><span class="l"></span><span class="badge"></span></div>
+      <div class="names">
+        <div class="nm"><div class="name" title="双击改名"></div><button class="pen" title="重命名">${ICON.pen}</button></div>
+        <div class="note" title="点击编辑备注"></div>
+      </div>
+      <button class="more" title="更多">${ICON.more}</button>
+      <button class="check"><span>${ICON.check}</span></button>
+    </div>
+    <div class="status"></div>
+    <div class="page"></div>
+    <div class="acts"></div>`;
+  const P = () => profiles.find((x) => x.id === id);
+  card.onclick = () => {
+    if (card.dataset.editing) return;
+    if (selecting) { toggleSel(id); return; }
+    launch(P());
+  };
+  card.oncontextmenu = (e) => { e.preventDefault(); e.stopPropagation(); cardMenu(P(), e.clientX + 176, e.clientY); };
+  card.querySelector('.name').onclick = (e) => { if (!selecting) e.stopPropagation(); };
+  card.querySelector('.name').ondblclick = (e) => { e.stopPropagation(); if (!selecting) startInline(id, 'name'); };
+  card.querySelector('.pen').onclick = (e) => { e.stopPropagation(); startInline(id, 'name'); };
+  card.querySelector('.note').onclick = (e) => { if (selecting) return; e.stopPropagation(); startInline(id, 'note'); };
+  card.querySelector('.more').onclick = (e) => {
+    e.stopPropagation();
+    const r = e.currentTarget.getBoundingClientRect();
+    cardMenu(P(), r.right, r.bottom + 6);
+  };
+  card.addEventListener('mousemove', () => {}, { passive: true });
+  // 拖动排序
+  card.ondragstart = (e) => { if (card.dataset.editing || selecting) { e.preventDefault(); return; } dragId = id; e.dataTransfer.effectAllowed = 'move'; setTimeout(() => card.classList.add('dragging'), 0); };
+  card.ondragend = () => {
+    card.classList.remove('dragging');
+    const ids = [...grid.querySelectorAll('.card[data-id]:not(.removing)')].map((c) => c.dataset.id);
+    dragId = null;
+    if (ids.join() !== profiles.map((x) => x.id).join()) window.yy.reorder(ids); else render();
+  };
+  card.ondragover = (e) => {
+    e.preventDefault();
+    if (!dragId || dragId === id) return;
+    const dragged = cards.get(dragId);
+    const all = [...grid.querySelectorAll('.card[data-id]')];
+    const before = all.indexOf(dragged) > all.indexOf(card) ? card : card.nextSibling;
+    if (dragged.nextSibling === before || dragged === before) return;
+    const rects = new Map(all.map((c) => [c, c.getBoundingClientRect()]));
+    grid.insertBefore(dragged, before);
+    for (const c of all) {
+      const a = rects.get(c), b = c.getBoundingClientRect();
+      if (a.left !== b.left || a.top !== b.top) c.animate([{ transform: `translate(${a.left - b.left}px, ${a.top - b.top}px)` }, { transform: 'none' }], { duration: 260, easing: 'cubic-bezier(.2,.8,.2,1)' });
+    }
+  };
+  return card;
+}
+
+function fillCard(card, p, i) {
+  card.style.setProperty('--pc', p.color);
+  card.style.setProperty('--i', i + 3);
+  card.classList.toggle('running', p.running);
+  card.classList.toggle('selected', selected.has(p.id));
+  card.querySelector('.key').textContent = i < 10 ? (i + 1) % 10 : '';
+  card.querySelector('.avatar .l').textContent = initial(p.name);
+  if (card.dataset.editing !== 'name') card.querySelector('.name').textContent = p.name;
+  if (card.dataset.editing !== 'note') {
+    const note = card.querySelector('.note');
+    note.textContent = p.note || '添加备注…';
+    note.classList.toggle('empty', !p.note);
+  }
+  const status = card.querySelector('.status');
+  const page = card.querySelector('.page');
+  if (p.running) {
+    status.innerHTML = `<span class="dot"></span>运行中 · ${p.tabCount} 个标签页`;
+    page.textContent = p.activeTitle ? `正在浏览：${p.activeTitle}` : '';
+  } else {
+    status.innerHTML = '<span class="dot off"></span>未打开';
+    page.textContent = settings.restoreTabs && p.lastTabs ? `上次打开了 ${p.lastTabs} 个网页，打开后自动恢复` : (p.startUrl ? `启动页：${p.startUrl}` : '登录信息已保存，打开即可继续使用');
+  }
+  const acts = card.querySelector('.acts');
+  const key = p.running ? 'run' : 'idle';
+  if (acts.dataset.k !== key) {
+    acts.dataset.k = key;
+    acts.innerHTML = p.running
+      ? `<button class="btn go" data-a="focus">${ICON.focus}切换到窗口</button><button class="btn icon" data-a="close" title="关闭这个浏览器的窗口">${ICON.x}</button>`
+      : `<button class="btn go" data-a="open">${ICON.open}打开浏览器</button>`;
+    acts.querySelectorAll('button').forEach((b) => {
+      b.onclick = (e) => {
+        if (selecting) return;
+        e.stopPropagation();
+        if (b.dataset.a === 'close') window.yy.closeWin(p.id);
+        else launch(profiles.find((x) => x.id === p.id));
+      };
+    });
+  }
+}
+
+function render() {
+  if (dragId) return;
+  $('count').textContent = profiles.length;
+  $('meter').style.width = `${(profiles.length / info.max) * 100}%`;
+  const runningN = profiles.filter((p) => p.running).length;
+  $('running').textContent = runningN;
+  $('liveDot').classList.toggle('off', !runningN);
+  $('tileBtn').disabled = runningN < 2;
+  syncFsBtn();
+  const ids = new Set(profiles.map((p) => p.id));
+  for (const [id, el] of cards) {
+    if (ids.has(id)) continue;
+    cards.delete(id); selected.delete(id);
+    el.classList.add('removing');
+    setTimeout(() => el.remove(), 260);
+  }
+  let prev = null;
+  profiles.forEach((p, i) => {
+    let el = cards.get(p.id);
+    if (!el) {
+      el = buildCard(p.id);
+      cards.set(p.id, el);
+      el.classList.add(firstRender ? 'reveal' : 'pop');
+    }
+    fillCard(el, p, i);
+    const want = prev ? prev.nextElementSibling : grid.firstElementChild;
+    if (want !== el) grid.insertBefore(el, want);
+    prev = el;
+  });
+  grid.appendChild(addCard);
+  const full = profiles.length >= info.max;
+  addCard.classList.toggle('disabled', full);
+  addCard.style.setProperty('--i', profiles.length + 3);
+  addCard.innerHTML = `<div class="plus">+</div><div>${full ? '已达上限' : '新建浏览器'}</div><small>${full ? '最多 10 个浏览器' : `还可以再建 ${info.max - profiles.length} 个`}</small>`;
+  firstRender = false;
+  syncSelbar();
+}
+document.addEventListener('animationend', (e) => {
+  const c = e.target.classList;
+  if (c.contains('reveal')) c.remove('reveal');
+  if (c.contains('pop')) c.remove('pop');
+  if (c.contains('launch')) c.remove('launch');
+});
+
+// ---------- 多选 ----------
+function setSelecting(on) {
+  selecting = on;
+  if (!on) selected.clear();
+  document.body.classList.toggle('selecting', on);
+  $('selBtn').classList.toggle('on', on);
+  render();
+}
+function toggleSel(id) {
+  if (selected.has(id)) selected.delete(id); else selected.add(id);
+  render();
+}
+function syncSelbar() {
+  $('selUrl').disabled = !selected.size;
+  $('selRename').disabled = !selected.size;
+  $('selN').textContent = `已选 ${selected.size} 个`;
+  $('selOpen').disabled = !selected.size;
+  $('selClose').disabled = ![...selected].some((id) => profiles.find((p) => p.id === id)?.running);
+  $('selAll').textContent = selected.size === profiles.length && profiles.length ? '全不选' : '全选';
+}
+$('selBtn').onclick = () => setSelecting(!selecting);
+$('selDone').onclick = () => setSelecting(false);
+$('selAll').onclick = () => {
+  if (selected.size === profiles.length) selected.clear(); else profiles.forEach((p) => selected.add(p.id));
+  render();
+};
+$('selOpen').onclick = async () => {
+  const ids = profiles.map((p) => p.id).filter((id) => selected.has(id));
+  toast(`正在打开 ${ids.length} 个浏览器…`);
+  await window.yy.openMany(ids);
+  setSelecting(false);
+};
+$('selClose').onclick = () => { window.yy.closeWin([...selected]); setSelecting(false); };
+$('tileBtn').onclick = () => window.yy.tile();
+$('allBgBtn').onclick = async () => {
+  const n = profiles.filter((p) => !p.running).length;
+  if (!n) return toast('所有浏览器都已经打开了');
+  toast(`正在后台打开 ${n} 个浏览器…`);
+  await window.yy.openAllBg();
+  toast(`已在后台打开 ${n} 个浏览器，现在切换都是无缝的`);
+};
+$('fsBtn').onclick = async () => {
+  const r = await window.yy.fullscreenAll();
+  if (!r.count) return toast('还没有打开的浏览器，可以先点“全部后台打开”');
+  toast(r.on ? `${r.count} 个浏览器已全部全屏` : `${r.count} 个浏览器已退出全屏`);
+  syncFsBtn();
+};
+async function syncFsBtn() {
+  const st = await window.yy.fsState();
+  $('fsLabel').textContent = st.allFs ? '退出全屏' : '一键全屏';
+  $('allBgBtn').disabled = profiles.length > 0 && profiles.every((p) => p.running);
+}
+
+addEventListener('keydown', (e) => {
+  if (!revealed || modalOpen() || e.metaKey || e.ctrlKey || e.altKey || document.activeElement?.tagName === 'INPUT') return;
+  if (/^[0-9]$/.test(e.key)) { const p = profiles[(Number(e.key) + 9) % 10]; if (p) launch(p); }
+  if (e.key === 'n' || e.key === 'N') createProfile();
+  if (e.key === 'Escape' && selecting) setSelecting(false);
+});
+
+window.yy.onChange((list) => { profiles = list; render(); });
+window.yy.onSettings((s) => { settings = s; document.body.classList.toggle('lite', !!s.lite); render(); });
+window.yy.onOpenSettings(openSettings);
+window.yy.onOpenEdit(editById);
+window.yy.onOpenBatch((b) => openBatch(b || {}));
+Promise.all([window.yy.info(), window.yy.getSettings(), window.yy.list()]).then(([i, s, list]) => {
+  info = i; settings = s; profiles = list; render();
+});
+</script>
+</body>
+</html>

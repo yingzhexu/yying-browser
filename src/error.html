@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>无法访问此网站</title>
+<style>
+  :root { --c: #ff6b8b; --bg: #f7f8fb; --text: #1d1f2b; --sub: #6b7085; --card: #fff; --line: #e3e5ec; color-scheme: light; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #1d1e24; --text: #e9eaf1; --sub: #9b9eae; --card: #2a2b33; --line: #393b46; color-scheme: dark; } }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: var(--bg); color: var(--text);
+    font-family: -apple-system, "PingFang SC", "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif; }
+  .wrap { max-width: 520px; padding: 40px 28px; animation: up .5s cubic-bezier(.2,.8,.2,1); }
+  @keyframes up { from { opacity: 0; transform: translateY(14px); } }
+  .icon { width: 72px; height: 72px; border-radius: 22px; background: color-mix(in srgb, var(--c) 14%, var(--card)); display: grid; place-items: center; margin-bottom: 26px; }
+  .icon svg { width: 36px; height: 36px; stroke: var(--c); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; animation: wobble 2.4s ease-in-out infinite; }
+  @keyframes wobble { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(-8deg); } }
+  h1 { font-size: 24px; margin: 0 0 12px; }
+  p { color: var(--sub); line-height: 1.7; margin: 0 0 6px; font-size: 14px; }
+  .url { color: var(--text); font-weight: 600; word-break: break-all; }
+  .code { font-family: ui-monospace, Menlo, monospace; font-size: 12px; color: var(--sub); margin-top: 18px; }
+  ul { color: var(--sub); font-size: 14px; line-height: 1.9; padding-left: 20px; margin: 14px 0 0; }
+  button { margin-top: 28px; border: 0; height: 40px; border-radius: 20px; padding: 0 26px; font-size: 14px; color: #fff; cursor: pointer;
+    background: linear-gradient(90deg, var(--c), #9b6bff); transition: transform .2s cubic-bezier(.34,1.56,.64,1), filter .2s; font-family: inherit; }
+  button:hover { filter: brightness(1.08); }
+  button:active { transform: scale(.95); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="icon"><svg viewBox="0 0 24 24"><path d="M2 8.5a15 15 0 0 1 20 0M5.5 12a10 10 0 0 1 13 0M9 15.5a5 5 0 0 1 6 0"/><path d="M12 19.5h.01"/><path d="M3 3l18 18"/></svg></div>
+  <h1 id="title">无法访问此网站</h1>
+  <p id="desc"></p>
+  <ul id="tips"></ul>
+  <div class="code" id="code"></div>
+  <button id="retry">重新加载</button>
+</div>
+<script>
+  const q = new URLSearchParams(location.search);
+  const code = q.get('code');
+  const url = q.get('url') || '';
+  let host = url;
+  try { host = new URL(url).hostname; } catch {}
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const MAP = {
+    '-105': ['找不到服务器', `找不到 <span class="url">${esc(host)}</span> 的服务器 IP 地址。`, ['检查网址是否拼写正确', '检查网络连接', '检查 DNS 设置']],
+    '-106': ['未连接到互联网', '你的设备似乎已断开网络。', ['检查网线、调制解调器和路由器', '重新连接到 Wi-Fi 网络']],
+    '-102': ['无法访问此网站', `<span class="url">${esc(host)}</span> 拒绝了连接请求。`, ['检查网络连接', '检查代理服务器和防火墙']],
+    '-118': ['连接超时', `<span class="url">${esc(host)}</span> 的响应时间过长。`, ['检查网络连接', '检查代理服务器和防火墙', '稍后再试']],
+    '-109': ['无法访问此网站', `<span class="url">${esc(host)}</span> 无法访问。`, ['检查网络连接', '稍后再试']],
+    '-101': ['连接已重置', '与服务器的连接被意外重置。', ['检查网络连接', '检查代理服务器和防火墙']],
+    crash: ['糟糕，页面崩溃了', '显示此网页时出了点问题。', ['重新加载页面', '如果问题持续出现，尝试关闭其他标签页释放内存']],
+  };
+  const fallbackTitle = Number(code) <= -200 && Number(code) > -300 ? '你的连接不是私密连接' : '无法访问此网站';
+  const [title, desc, tips] = MAP[code] || [fallbackTitle, `无法打开 <span class="url">${esc(host || url)}</span>。`, ['检查网络连接', '稍后再试']];
+  document.title = title;
+  document.getElementById('title').textContent = title;
+  document.getElementById('desc').innerHTML = desc;
+  document.getElementById('tips').innerHTML = tips.map((t) => `<li>${esc(t)}</li>`).join('');
+  document.getElementById('code').textContent = code === 'crash' ? `错误代码：${q.get('desc') || 'crashed'}` : `错误代码：${q.get('desc') || code}`;
+  document.getElementById('retry').onclick = () => { if (url) location.href = url; else location.reload(); };
+  if (window.yyInternal) window.yyInternal.info().then((i) => i && document.documentElement.style.setProperty('--c', i.color));
+</script>
+</body>
+</html>
