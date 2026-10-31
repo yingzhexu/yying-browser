@@ -1,0 +1,155 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build ${{ matrix.platform }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: Windows x64
+            script: dist:win
+            artifact: windows-installer
+            path: dist/*-Windows-x64.exe
+          - os: macos-latest
+            platform: macOS Universal
+            script: dist:mac
+            artifact: macos-installer
+            path: dist/*-macOS-universal.dmg
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    steps:
+      - name: Check out the tagged source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Set up Node.js 24
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Verify the release version
+        shell: bash
+        run: |
+          node -e 'const p=require("./package.json"); if (`v${p.version}`!==process.env.GITHUB_REF_NAME) throw new Error("Tag and package version do not match");'
+          test -s "docs/releases/${GITHUB_REF_NAME}.md"
+          node --check src/main.js
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Build the installer
+        run: npm run ${{ matrix.script }}
+      - name: Verify the Windows installer
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $installers = @(Get-ChildItem -Path dist -Filter '*-Windows-x64.exe')
+          if ($installers.Count -ne 1) { throw 'Expected exactly one Windows installer' }
+          $file = $installers[0]
+          if ($file.Length -lt 10MB) { throw 'Windows installer is unexpectedly small' }
+          $stream = [System.IO.File]::OpenRead($file.FullName)
+          try {
+            if ($stream.ReadByte() -ne 0x4D -or $stream.ReadByte() -ne 0x5A) {
+              throw 'Windows installer has an invalid executable header'
+            }
+          } finally { $stream.Dispose() }
+          Write-Host "Verified $($file.Name): $($file.Length) bytes"
+          $app = Start-Process -FilePath 'dist/win-unpacked/YYING浏览器.exe' -PassThru
+          Start-Sleep -Seconds 8
+          if ($app.HasExited) { throw "Packaged application exited during startup: $($app.ExitCode)" }
+          Stop-Process -Id $app.Id -Force
+          Write-Host 'Packaged Windows application stayed running during the startup smoke check'
+      - name: Verify the macOS universal app and disk image
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          apps=(dist/mac-universal/*.app)
+          test "${#apps[@]}" -eq 1
+          executable=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "${apps[0]}/Contents/Info.plist")
+          lipo -verify_arch arm64 x86_64 "${apps[0]}/Contents/MacOS/${executable}"
+          codesign --verify --deep --strict "${apps[0]}"
+          hdiutil verify dist/*-macOS-universal.dmg
+          "${apps[0]}/Contents/MacOS/${executable}" > "$RUNNER_TEMP/yying-startup.log" 2>&1 &
+          app_pid=$!
+          sleep 8
+          if ! kill -0 "$app_pid" 2>/dev/null; then
+            cat "$RUNNER_TEMP/yying-startup.log"
+            exit 1
+          fi
+          kill -TERM "$app_pid"
+          wait "$app_pid" || true
+          echo 'Packaged macOS application stayed running during the startup smoke check'
+      - name: Save the verified installer
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.path }}
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+
+  release:
+    name: Publish installers and bilingual release notes
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - name: Check out the release notes
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Download both verified installers
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: '*-installer'
+          path: release-assets
+          merge-multiple: true
+      - name: Verify filenames and generate SHA-256 checksums
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+
+          version = json.loads(Path('package.json').read_text())['version']
+          root = Path('release-assets')
+          expected = {
+              f'YYING-Browser-{version}-Windows-x64.exe',
+              f'YYING-Browser-{version}-macOS-universal.dmg',
+          }
+          actual = {p.name for p in root.iterdir() if p.is_file()}
+          if actual != expected:
+              raise SystemExit(f'Unexpected release assets: {actual}')
+          lines = []
+          for name in sorted(expected):
+              with (root / name).open('rb') as stream:
+                  digest = hashlib.file_digest(stream, 'sha256').hexdigest()
+              lines.append(f'{digest}  {name}\n')
+          (root / 'SHA256SUMS.txt').write_text(''.join(lines), encoding='utf-8')
+          print(''.join(lines), end='')
+          PY
+      - name: Publish the GitHub release with both installers
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          gh release create "$GITHUB_REF_NAME" release-assets/* \
+            --verify-tag \
+            --title "YYING Browser $GITHUB_REF_NAME | YYING浏览器" \
+            --notes-file "docs/releases/${GITHUB_REF_NAME}.md" \
+            --latest
